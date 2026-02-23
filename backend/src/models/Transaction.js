@@ -3,7 +3,7 @@ const { sequelize } = require('../utils/db')
 
 const Transaction = sequelize.define('Transaction', {
   id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
-  code: { type: DataTypes.STRING(32), allowNull: false, unique: true },
+  code: { type: DataTypes.STRING(32), allowNull: false },
 
   patientName: { type: DataTypes.STRING(120), allowNull: true },
   unit: { type: DataTypes.STRING(120), allowNull: true },
@@ -15,9 +15,11 @@ const Transaction = sequelize.define('Transaction', {
   tax: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
   total: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
   paid: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
-  change: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 }
+  change: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
+  deletedAt: { type: DataTypes.DATE, allowNull: true, defaultValue: null }
 }, {
-  tableName: 'transactions'
+  tableName: 'transactions',
+  paranoid: false
 })
 
 module.exports = Transaction

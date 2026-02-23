@@ -9,15 +9,16 @@
   >
     <!-- Background Glow (Dark Only) -->
     <div
-      v-if="isDark"
+      v-if="isDark && !isLoginPage"
       class="absolute inset-0 -z-10 
       bg-[radial-gradient(1000px_600px_at_10%_-10%,rgba(59,130,246,0.25),transparent),
       radial-gradient(800px_500px_at_90%_0%,rgba(16,185,129,0.20),transparent),
       radial-gradient(900px_500px_at_50%_120%,rgba(139,92,246,0.15),transparent)]">
     </div>
 
-    <!-- Header -->
+    <!-- ================= HEADER ================= -->
     <header
+      v-if="!isLoginPage"
       :class="[
         'relative no-print backdrop-blur-xl border-b transition-colors duration-300',
         isDark
@@ -50,35 +51,67 @@
           </div>
         </div>
 
-        <!-- Nav + Toggle -->
+        <!-- Nav + Controls -->
         <div class="flex items-center gap-4">
 
           <nav class="flex items-center gap-2 text-sm">
             <RouterLink class="navlink" to="/">Dashboard</RouterLink>
             <RouterLink class="navlink" to="/new">Buat Struk</RouterLink>
             <RouterLink class="navlink" to="/settings">Settings</RouterLink>
+            <RouterLink class="navlink" to="/trash">🗑️ Trash</RouterLink>
           </nav>
 
-          <button
-            @click="toggleTheme"
-            class="px-3 py-2 rounded-xl text-sm transition-all duration-200 active:scale-95 ring-1"
-            :class="isDark
-              ? 'bg-white/10 ring-white/15 hover:bg-white/20'
-              : 'bg-slate-200 ring-slate-300 hover:bg-slate-300'"
-          >
-            {{ isDark ? '☀ Light' : '🌙 Dark' }}
-          </button>
+          <div class="flex items-center gap-3">
 
+            <!-- User -->
+            <div
+              v-if="authStore.user"
+              :class="[
+                'px-3 py-2 rounded-xl text-xs flex items-center gap-2 ring-1 transition-all',
+                isDark
+                  ? 'bg-white/5 ring-white/10 text-slate-300'
+                  : 'bg-slate-200 ring-slate-300 text-slate-700'
+              ]"
+            >
+              👤 {{ authStore.user.username }}
+            </div>
+
+            <!-- Theme Toggle -->
+            <button
+              @click="toggleTheme"
+              class="px-3 py-2 rounded-xl text-sm transition-all duration-200 active:scale-95 ring-1"
+              :class="isDark
+                ? 'bg-white/10 ring-white/15 hover:bg-white/20'
+                : 'bg-slate-200 ring-slate-300 hover:bg-slate-300'"
+            >
+              {{ isDark ? '☀ Light' : '🌙 Dark' }}
+            </button>
+
+            <!-- Logout -->
+            <button
+              @click="handleLogout"
+              class="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-95 ring-1"
+              :class="isDark
+                ? 'bg-red-500/20 text-red-300 ring-red-500/30 hover:bg-red-500/30'
+                : 'bg-red-50 text-red-700 ring-red-200 hover:bg-red-100'"
+            >
+              Logout
+            </button>
+
+          </div>
         </div>
-
       </div>
     </header>
 
-    <!-- Main -->
+    <!-- ================= MAIN ================= -->
     <main class="relative">
-      <div class="mx-auto max-w-6xl px-4 pb-10 pt-6">
+      <div
+        :class="[
+          'mx-auto max-w-6xl px-4',
+          isLoginPage ? '' : 'pb-10 pt-6'
+        ]"
+      >
 
-        <!-- PAGE TRANSITION -->
         <RouterView v-slot="{ Component }">
           <Transition name="page" mode="out-in">
             <component :is="Component" />
@@ -88,8 +121,9 @@
       </div>
     </main>
 
-    <!-- Footer -->
+    <!-- ================= FOOTER ================= -->
     <footer
+      v-if="!isLoginPage"
       :class="[
         'relative no-print border-t mt-10 transition-colors duration-300',
         isDark
@@ -97,11 +131,9 @@
           : 'border-slate-200 text-slate-500'
       ]"
     >
-      <div class="mx-auto max-w-6xl px-4 py-8 text-xs">
-        <div class="flex items-center justify-between gap-3 flex-wrap">
-          <p>© {{ year }} Struk App • Vue 3 + Express + MySQL</p>
-          <p class="opacity-80">Tip: klik “Print” untuk cetak versi thermal.</p>
-        </div>
+      <div class="mx-auto max-w-6xl px-4 py-8 text-xs flex justify-between flex-wrap">
+        <p>© {{ year }} Struk App • Vue 3 + Express + MySQL</p>
+        <p class="opacity-80">Tip: klik “Print” untuk cetak versi thermal.</p>
       </div>
     </footer>
 
@@ -109,16 +141,30 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '../../stores/auth'
+
+const router = useRouter()
+const route = useRoute()
+const authStore = useAuthStore()
 
 const year = new Date().getFullYear()
 const isDark = ref(true)
 
+const isLoginPage = computed(() => route.path === '/login')
+
+/* ================= INIT THEME ================= */
+
 onMounted(() => {
   const saved = localStorage.getItem('theme')
-  if (saved) {
-    isDark.value = saved === 'dark'
+
+  if (saved === 'dark') {
+    isDark.value = true
+  } else {
+    isDark.value = false
   }
+
   applyTheme()
 })
 
@@ -132,23 +178,25 @@ function applyTheme() {
   } else {
     document.documentElement.classList.remove('dark')
   }
+
   localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
 }
 
 function toggleTheme() {
   isDark.value = !isDark.value
 }
+
+async function handleLogout() {
+  await authStore.logout()
+  router.push('/login')
+}
 </script>
 
 <style scoped>
-
-/* ================= PAGE TRANSITION ================= */
-
 .page-enter-active,
 .page-leave-active {
   transition: all 0.18s ease;
 }
-
 .page-enter-from {
   opacity: 0;
   transform: translateY(6px);
@@ -159,12 +207,8 @@ function toggleTheme() {
   transform: translateY(-6px);
 }
 
-/* ================= NAV ================= */
-
 .navlink {
-  @apply px-3 py-2 rounded-xl transition-all duration-200
-         text-slate-600 hover:text-slate-900
-         hover:bg-slate-200/70 hover:scale-[1.03] active:scale-95;
+  @apply px-3 py-2 rounded-xl transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 hover:scale-[1.03] active:scale-95;
 }
 
 :deep(.dark) .navlink {
@@ -178,44 +222,4 @@ function toggleTheme() {
 :deep(.dark) .router-link-active {
   @apply bg-white/15 text-white;
 }
-
-/* ================= FORM SYSTEM ================= */
-
-.label {
-  @apply text-xs text-slate-600;
-}
-
-:deep(.dark) .label {
-  @apply text-slate-300;
-}
-
-.label2 {
-  @apply text-[11px] text-slate-500;
-}
-
-:deep(.dark) .label2 {
-  @apply text-slate-400;
-}
-
-.input {
-  @apply w-full rounded-xl bg-slate-200 ring-1 ring-slate-300
-         px-3 py-2 text-sm placeholder:text-slate-500
-         focus:ring-slate-400 focus:outline-none
-         transition-all duration-200;
-}
-
-:deep(.dark) .input {
-  @apply bg-white/5 ring-white/10
-         text-slate-100 placeholder:text-slate-500
-         focus:ring-white/20;
-}
-
-.item-box {
-  @apply rounded-xl bg-slate-200 ring-1 ring-slate-300 p-3 transition-all duration-200 hover:-translate-y-0.5;
-}
-
-:deep(.dark) .item-box {
-  @apply bg-white/5 ring-white/10;
-}
-
 </style>

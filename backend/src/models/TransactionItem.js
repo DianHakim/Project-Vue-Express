@@ -7,9 +7,11 @@ const TransactionItem = sequelize.define('TransactionItem', {
 
   name: { type: DataTypes.STRING(140), allowNull: false },
   qty: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 1 },
-  price: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 }
+  price: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
+  deletedAt: { type: DataTypes.DATE, allowNull: true, defaultValue: null }
 }, {
-  tableName: 'transaction_items'
+  tableName: 'transaction_items',
+  paranoid: false
 })
 
 module.exports = TransactionItem

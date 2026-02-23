@@ -65,23 +65,34 @@
           <div v-else-if="store.error" class="text-sm text-rose-300">{{ store.error }}</div>
 
           <div v-else class="divide-y divide-white/10">
-            <RouterLink
+            <div
               v-for="t in filtered"
               :key="t.id"
-              :to="`/receipt/${t.id}`"
-              class="block py-3 hover:bg-white/5 rounded-xl px-3 transition"
+              class="flex items-center justify-between gap-3 py-3 px-3 hover:bg-white/5 rounded-xl transition group"
             >
-              <div class="flex items-center justify-between gap-3">
-                <div class="min-w-0">
-                  <p class="text-sm font-semibold truncate">{{ t.patientName || '—' }}</p>
-                  <p class="text-xs text-slate-400 truncate">{{ t.code }} • {{ shortDate(t.createdAt) }}</p>
+              <RouterLink
+                :to="`/receipt/${t.id}`"
+                class="flex-1 min-w-0 block"
+              >
+                <div class="flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold truncate">{{ t.patientName || '—' }}</p>
+                    <p class="text-xs text-slate-400 truncate">{{ t.code }} • {{ shortDate(t.createdAt) }}</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-sm font-semibold">{{ rupiah(t.total) }}</p>
+                    <p class="text-xs text-slate-400">{{ t.paymentMethod || '-' }}</p>
+                  </div>
                 </div>
-                <div class="text-right">
-                  <p class="text-sm font-semibold">{{ rupiah(t.total) }}</p>
-                  <p class="text-xs text-slate-400">{{ t.paymentMethod || '-' }}</p>
-                </div>
-              </div>
-            </RouterLink>
+              </RouterLink>
+              <button
+                @click.prevent="deleteTransaction(t.id)"
+                class="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded text-xs text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                title="Hapus transaksi"
+              >
+                🗑️
+              </button>
+            </div>
 
             <div v-if="filtered.length === 0" class="py-8 text-center text-sm text-slate-400">
               Belum ada transaksi yang cocok.
@@ -160,6 +171,18 @@ const resetFilters = () => {
 
 async function reload() {
   await store.fetchAll()
+}
+
+async function deleteTransaction(id) {
+  if (confirm('Yakin ingin menghapus transaksi ini?')) {
+    try {
+      await api.delete(`/transactions/${id}`)
+      await store.fetchAll()
+      alert('Transaksi berhasil dihapus')
+    } catch (error) {
+      alert('Gagal menghapus transaksi: ' + (error.response?.data?.message || error.message))
+    }
+  }
 }
 
 onMounted(async () => {

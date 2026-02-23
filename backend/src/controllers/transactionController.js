@@ -3,13 +3,14 @@ const { makeCode, computeTotals } = require('../utils/receipt')
 
 /**
  * GET /api/transactions
- * Ambil semua transaksi dengan items
+ * Ambil semua transaksi dengan items (hanya data aktif)
  */
 exports.getAllTransactions = async (req, res) => {
   try {
     const items = await Transaction.findAll({
+      where: { deletedAt: null },
       order: [['createdAt', 'DESC']],
-      include: [{ model: TransactionItem, as: 'items' }]
+      include: [{ model: TransactionItem, as: 'items', where: { deletedAt: null }, required: false }]
     })
     res.json({ data: items })
   } catch (e) {
@@ -19,15 +20,15 @@ exports.getAllTransactions = async (req, res) => {
 
 /**
  * GET /api/transactions/:id
- * Ambil transaksi berdasarkan ID
+ * Ambil transaksi berdasarkan ID (hanya data aktif)
  */
 exports.getTransactionById = async (req, res) => {
   try {
     const id = Number(req.params.id)
     const item = await Transaction.findByPk(id, {
-      include: [{ model: TransactionItem, as: 'items' }]
+      include: [{ model: TransactionItem, as: 'items', where: { deletedAt: null }, required: false }]
     })
-    if (!item) return res.status(404).json({ message: 'Transaksi tidak ditemukan' })
+    if (!item || item.deletedAt) return res.status(404).json({ message: 'Transaksi tidak ditemukan' })
     res.json({ data: item })
   } catch (e) {
     res.status(500).json({ message: e.message })
@@ -101,18 +102,95 @@ exports.createTransaction = async (req, res) => {
 
 /**
  * DELETE /api/transactions/:id
- * Hapus transaksi
+ * Soft delete transaksi (set deletedAt)
  */
 exports.deleteTransaction = async (req, res) => {
   try {
     const id = Number(req.params.id)
     const t = await Transaction.sequelize.transaction()
     try {
-      await TransactionItem.destroy({ where: { transactionId: id }, transaction: t })
-      const n = await Transaction.destroy({ where: { id }, transaction: t })
+      const trx = await Transaction.findByPk(id, { transaction: t })
+      if (!trx) return res.status(404).json({ message: 'Transaksi tidak ditemukan' })
+      if (trx.deletedAt) return res.status(404).json({ message: 'Transaksi sudah dihapus' })
+
+      const now = new Date()
+      await TransactionItem.update({ deletedAt: now }, { where: { transactionId: id }, transaction: t })
+      await Transaction.update({ deletedAt: now }, { where: { id }, transaction: t })
       await t.commit()
-      if (!n) return res.status(404).json({ message: 'Transaksi tidak ditemukan' })
-      res.json({ ok: true })
+      res.json({ ok: true, message: 'Transaksi berhasil dihapus' })
+    } catch (e) {
+      await t.rollback()
+      throw e
+    }
+  } catch (e) {
+    res.status(500).json({ message: e.message })
+  }
+}
+
+/**
+ * POST /api/transactions/:id/restore
+ * Restore soft-deleted transaksi
+ */
+exports.restoreTransaction = async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    const t = await Transaction.sequelize.transaction()
+    try {
+      const trx = await Transaction.findByPk(id, { paranoid: false, transaction: t })
+      if (!trx) return res.status(404).json({ message: 'Transaksi tidak ditemukan' })
+      if (!trx.deletedAt) return res.status(400).json({ message: 'Transaksi belum dihapus' })
+
+      await TransactionItem.update({ deletedAt: null }, { where: { transactionId: id }, transaction: t })
+      await Transaction.update({ deletedAt: null }, { where: { id }, transaction: t })
+      await t.commit()
+      
+      const restored = await Transaction.findByPk(id, {
+        include: [{ model: TransactionItem, as: 'items', where: { deletedAt: null }, required: false }]
+      })
+      res.json({ data: restored, message: 'Transaksi berhasil dikembalikan' })
+    } catch (e) {
+      await t.rollback()
+      throw e
+    }
+  } catch (e) {
+    res.status(500).json({ message: e.message })
+  }
+}
+
+/**
+ * GET /api/transactions/trash/deleted
+ * Ambil semua transaksi yang sudah dihapus (soft deleted)
+ */
+exports.getDeletedTransactions = async (req, res) => {
+  try {
+    const items = await Transaction.findAll({
+      where: { deletedAt: { [require('sequelize').Op.not]: null } },
+      order: [['deletedAt', 'DESC']],
+      include: [{ model: TransactionItem, as: 'items', required: false }]
+    })
+    res.json({ data: items })
+  } catch (e) {
+    res.status(500).json({ message: e.message })
+  }
+}
+
+/**
+ * DELETE /api/transactions/:id/permanent
+ * Hard delete - Hapus permanen transaksi yang sudah soft deleted
+ */
+exports.permanentDeleteTransaction = async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    const t = await Transaction.sequelize.transaction()
+    try {
+      const trx = await Transaction.findByPk(id, { transaction: t })
+      if (!trx) return res.status(404).json({ message: 'Transaksi tidak ditemukan' })
+      if (!trx.deletedAt) return res.status(400).json({ message: 'Hanya transaksi yang dihapus yang bisa dihapus permanen' })
+
+      await TransactionItem.destroy({ where: { transactionId: id }, transaction: t })
+      await Transaction.destroy({ where: { id }, transaction: t })
+      await t.commit()
+      res.json({ ok: true, message: 'Transaksi berhasil dihapus secara permanen' })
     } catch (e) {
       await t.rollback()
       throw e
