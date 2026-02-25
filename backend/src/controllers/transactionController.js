@@ -1,4 +1,4 @@
-const { Transaction, TransactionItem } = require('../models')
+const { Transaction, TransactionItem, User } = require('../models')
 const { makeCode, computeTotals } = require('../utils/receipt')
 
 /**
@@ -10,7 +10,10 @@ exports.getAllTransactions = async (req, res) => {
     const items = await Transaction.findAll({
       where: { deletedAt: null },
       order: [['createdAt', 'DESC']],
-      include: [{ model: TransactionItem, as: 'items', where: { deletedAt: null }, required: false }]
+      include: [
+        { model: TransactionItem, as: 'items', where: { deletedAt: null }, required: false },
+        { model: User, as: 'user', attributes: ['id', 'username', 'email', 'role'], required: false }
+      ]
     })
     res.json({ data: items })
   } catch (e) {
@@ -26,7 +29,10 @@ exports.getTransactionById = async (req, res) => {
   try {
     const id = Number(req.params.id)
     const item = await Transaction.findByPk(id, {
-      include: [{ model: TransactionItem, as: 'items', where: { deletedAt: null }, required: false }]
+      include: [
+        { model: TransactionItem, as: 'items', where: { deletedAt: null }, required: false },
+        { model: User, as: 'user', attributes: ['id', 'username', 'email', 'role'], required: false }
+      ]
     })
     if (!item || item.deletedAt) return res.status(404).json({ message: 'Transaksi tidak ditemukan' })
     res.json({ data: item })
@@ -66,6 +72,7 @@ exports.createTransaction = async (req, res) => {
         unit: payload.unit || null,
         paymentMethod: payload.paymentMethod || 'Cash',
         note: payload.note || null,
+        userId: req.user?.id || null,
         subtotal: totals.subtotal,
         discount: totals.discount,
         tax: totals.tax,
@@ -87,7 +94,10 @@ exports.createTransaction = async (req, res) => {
       await t.commit()
 
       const created = await Transaction.findByPk(trx.id, {
-        include: [{ model: TransactionItem, as: 'items' }]
+        include: [
+          { model: TransactionItem, as: 'items' },
+          { model: User, as: 'user', attributes: ['id', 'username', 'email', 'role'], required: false }
+        ]
       })
 
       res.status(201).json({ data: created })
@@ -166,7 +176,10 @@ exports.getDeletedTransactions = async (req, res) => {
     const items = await Transaction.findAll({
       where: { deletedAt: { [require('sequelize').Op.not]: null } },
       order: [['deletedAt', 'DESC']],
-      include: [{ model: TransactionItem, as: 'items', required: false }]
+      include: [
+        { model: TransactionItem, as: 'items', required: false },
+        { model: User, as: 'user', attributes: ['id', 'username', 'email', 'role'], required: false }
+      ]
     })
     res.json({ data: items })
   } catch (e) {

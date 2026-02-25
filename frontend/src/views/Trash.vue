@@ -48,6 +48,7 @@
 
             <div class="flex items-center gap-2 flex-shrink-0">
               <button
+                v-if="authStore.isAdmin"
                 @click="restoreItem(t.id)"
                 class="px-3 py-2 rounded-lg text-sm font-semibold transition-all active:scale-95 ring-1"
                 :class="
@@ -60,6 +61,7 @@
                 {{ isRestoring === t.id ? '⟳ ...' : '↩️ Pulihkan' }}
               </button>
               <button
+                v-if="authStore.isAdmin"
                 @click="deletePermanently(t.id)"
                 class="px-3 py-2 rounded-lg text-sm font-semibold transition-all active:scale-95 ring-1"
                 :class="
@@ -90,8 +92,10 @@ import Button from '../components/ui/Button.vue'
 import { useReceiptsStore } from '../stores/receipts'
 import { rupiah } from '../lib/format'
 import api from '../lib/http'
+import { useAuthStore } from '../stores/auth'
 
 const store = useReceiptsStore()
+const authStore = useAuthStore()
 const q = ref('')
 const isRestoring = ref(null)
 const isDeleting = ref(null)

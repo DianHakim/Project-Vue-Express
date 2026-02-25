@@ -6,6 +6,7 @@ import NewReceipt from '../views/NewReceipt.vue'
 import ReceiptDetail from '../views/ReceiptDetail.vue'
 import Settings from '../views/Settings.vue'
 import Trash from '../views/Trash.vue'
+import Kasir from '../views/Kasir.vue'
 
 const routes = [
   { path: '/login', name: 'login', component: Login, meta: { requiresAuth: false } },
@@ -13,7 +14,8 @@ const routes = [
   { path: '/new', name: 'new', component: NewReceipt, meta: { requiresAuth: true } },
   { path: '/receipt/:id', name: 'receipt', component: ReceiptDetail, props: true, meta: { requiresAuth: true } },
   { path: '/settings', name: 'settings', component: Settings, meta: { requiresAuth: true } },
-  { path: '/trash', name: 'trash', component: Trash, meta: { requiresAuth: true } }
+  { path: '/trash', name: 'trash', component: Trash, meta: { requiresAuth: true } },
+  { path: '/kasir', name: 'kasir', component: Kasir, meta: { requiresAuth: true } }
 ]
 
 const router = createRouter({
@@ -36,6 +38,9 @@ router.beforeEach((to, from, next) => {
   if (requiresAuth && !isLoggedIn) {
     next('/login')
   } else if (to.path === '/login' && isLoggedIn) {
+    next('/')
+  } else if ((to.path === '/trash' || to.path === '/settings') && authStore.user && authStore.user.role !== 'admin') {
+    // prevent non-admin from accessing trash/settings
     next('/')
   } else {
     next()

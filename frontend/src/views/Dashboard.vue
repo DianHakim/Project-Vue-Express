@@ -20,7 +20,7 @@
         <p class="text-sm text-slate-300 mt-1">Transaksi tersimpan</p>
         <div class="mt-4 flex gap-2">
           <Button variant="ghost" @click="reload">↻ Refresh</Button>
-          <RouterLink to="/settings"><Button variant="ghost">⚙️ Settings</Button></RouterLink>
+          <RouterLink v-if="authStore.isAdmin" to="/settings"><Button variant="ghost">⚙️ Settings</Button></RouterLink>
         </div>
       </Card>
 
@@ -86,6 +86,7 @@
                 </div>
               </RouterLink>
               <button
+                v-if="authStore.isAdmin"
                 @click.prevent="deleteTransaction(t.id)"
                 class="opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded text-xs text-red-400 hover:text-red-300 hover:bg-red-500/20"
                 title="Hapus transaksi"
@@ -109,10 +110,12 @@ import { computed, onMounted, ref } from 'vue'
 import Card from '../components/ui/Card.vue'
 import Button from '../components/ui/Button.vue'
 import { useReceiptsStore } from '../stores/receipts'
+import { useAuthStore } from '../stores/auth'
 import { rupiah, shortDate } from '../lib/format'
 import api from '../lib/http'
 
 const store = useReceiptsStore()
+const authStore = useAuthStore()
 const q = ref('')
 const apiStatus = ref('checking...')
 const selectedPaymentMethod = ref('')

@@ -57,8 +57,8 @@
           <nav class="flex items-center gap-2 text-sm">
             <RouterLink class="navlink" to="/">Dashboard</RouterLink>
             <RouterLink class="navlink" to="/new">Buat Struk</RouterLink>
-            <RouterLink class="navlink" to="/settings">Settings</RouterLink>
-            <RouterLink class="navlink" to="/trash">🗑️ Trash</RouterLink>
+            <RouterLink v-if="authStore.isAdmin" class="navlink" to="/settings">Settings</RouterLink>
+            <RouterLink v-if="authStore.isAdmin" class="navlink" to="/trash">🗑️ Trash</RouterLink>
           </nav>
 
           <div class="flex items-center gap-3">

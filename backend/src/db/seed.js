@@ -20,6 +20,20 @@ async function main() {
 
   console.log('✓ Admin user created/found:', adminUser[0].username)
 
+  // Create kasir user
+  const kasirUser = await User.findOrCreate({
+    where: { username: 'kasir' },
+    defaults: {
+      username: 'kasir',
+      password: 'kasir123',
+      email: 'kasir@clinic.local',
+      role: 'kasir',
+      isActive: true
+    }
+  })
+
+  console.log('✓ Kasir user created/found:', kasirUser[0].username)
+
   // Create sample transactions
   const sampleTransactions = [
     {
@@ -59,6 +73,7 @@ async function main() {
         unit: sample.unit,
         paymentMethod: 'Cash',
         note: 'Terima kasih.',
+        userId: adminUser[0].id,
         ...totals
       })
 

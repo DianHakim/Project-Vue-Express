@@ -6,10 +6,10 @@
         <p class="text-slate-300 mt-1">Print, hapus, atau cek rincian.</p>
       </div>
       <div class="flex gap-2">
-        <RouterLink to="/new"><Button variant="ghost">➕ Baru</Button></RouterLink>
-        <Button variant="ghost" @click="print">🖨️ Print</Button>
-        <Button variant="danger" @click="remove" :disabled="deleting">🗑️ Hapus</Button>
-      </div>
+          <RouterLink to="/new"><Button variant="ghost">➕ Baru</Button></RouterLink>
+          <Button variant="ghost" @click="print">🖨️ Print</Button>
+          <Button v-if="authStore.isAdmin" variant="danger" @click="remove" :disabled="deleting">🗑️ Hapus</Button>
+        </div>
     </div>
 
     <div class="mt-6">
@@ -29,9 +29,11 @@ import ReceiptPaper from '../components/receipt/ReceiptPaper.vue'
 import { useReceiptsStore } from '../stores/receipts'
 import { useAppStore } from '../stores/app'
 import { shortDate } from '../lib/format'
+import { useAuthStore } from '../stores/auth'
 
 const props = defineProps({ id: String })
 const store = useReceiptsStore()
+const authStore = useAuthStore()
 const app = useAppStore()
 
 const loading = ref(true)

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import api from '../lib/http'
+import { useAuthStore } from './auth'
 
 export const useReceiptsStore = defineStore('receipts', {
   state: () => ({
@@ -43,6 +44,12 @@ export const useReceiptsStore = defineStore('receipts', {
       return data.data
     },
     async remove(id) {
+      const auth = useAuthStore()
+      if (!auth.isAdmin) {
+        const err = new Error('Akses ditolak')
+        err.userMessage = 'Hanya admin yang dapat menghapus transaksi'
+        throw err
+      }
       await api.delete(`/transactions/${id}`)
       this.items = this.items.filter(x => x.id !== Number(id))
     },
